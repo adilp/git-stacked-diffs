@@ -4,6 +4,7 @@ Stack Enhanced - Extended version with push and PR support
 Not included yet
 anotherone
 stack2
+another edition
 """
 
 import json
