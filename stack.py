@@ -265,7 +265,7 @@ class StackManager:
                 print("You must stage files before creating a branch:")
                 print(f"  git add <files>")
                 print(f"  stack create {branch_name} -m \"Your message\"")
-                sys.exit(1)
+                return
 
             # If staged changes exist but no commit message, require a message or --no-commit flag
             if not no_commit and not message:
@@ -273,12 +273,12 @@ class StackManager:
                 print("Either:")
                 print(f"  1. Provide a message: stack create {branch_name} -m \"Your message\"")
                 print(f"  2. Create branch without committing (changes stay staged): stack create {branch_name} --no-commit")
-                sys.exit(1)
+                return
 
             # If message is provided but empty/whitespace, reject it
             if message and not message.strip():
                 print("⚠️  Commit message cannot be empty or whitespace only")
-                sys.exit(1)
+                return
 
             # Create the new branch
             self._run_git("checkout", "-b", branch_name)
