@@ -1,6 +1,6 @@
-# Stack CLI - Stacked Branch Workflow for Git
+# git-stack - Stacked Branch Workflow for Git
 
-A lightweight, single-file CLI tool for managing stacked Git branches. Stack helps you work with dependent branches without requiring cloud services or complex setups - just Python 3 and Git.
+A lightweight, single-file CLI tool for managing stacked Git branches. git-stack helps you work with dependent branches without requiring cloud services or complex setups - just Python 3 and Git.
 
 ## What are Stacked Branches?
 
@@ -45,7 +45,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 Verify installation:
 ```bash
-stack --help
+git-stack --help
 ```
 
 ## Quick Start
@@ -59,20 +59,20 @@ git checkout main
 # Create your first branch
 echo "Authentication module" > auth.py
 git add auth.py
-stack create auth-foundation -m "Add auth foundation"
+git-stack create auth-foundation -m "Add auth foundation"
 
 # Stack another branch on top
 echo "Login UI component" > login.py
 git add login.py
-stack create auth-ui -m "Add login UI"
+git-stack create auth-ui -m "Add login UI"
 
 # Stack a third branch
 echo "Auth tests" > auth_test.py
 git add auth_test.py
-stack create auth-tests -m "Add auth tests"
+git-stack create auth-tests -m "Add auth tests"
 
 # View your stack
-stack tree
+git-stack tree
 ```
 
 Output:
@@ -92,43 +92,43 @@ Output:
 ```bash
 # Create a new branch with a commit (requires staged files)
 git add <files>
-stack create <branch-name> -m "Commit message"
+git-stack create <branch-name> -m "Commit message"
 
 # Create a branch without committing (keeps changes staged)
 git add <files>
-stack create <branch-name> --no-commit
+git-stack create <branch-name> --no-commit
 
 # Note: You must stage files before creating a branch
-# stack create will fail if no files are staged
+# git-stack create will fail if no files are staged
 ```
 
 ### Navigation
 
 ```bash
 # Move to parent branch
-stack up
+git-stack up
 
 # Move to child branch (interactive if multiple children)
-stack down
+git-stack down
 
 # Jump to the top of the stack
-stack top
+git-stack top
 
 # Jump to the bottom of the stack (first branch above main)
-stack bottom
+git-stack bottom
 
 # Interactive branch checkout
-stack checkout
+git-stack checkout
 ```
 
 ### Viewing Your Stack
 
 ```bash
 # Show the branch tree
-stack tree
+git-stack tree
 
 # Show current branch info
-stack status
+git-stack status
 ```
 
 ### Modifying Branches
@@ -136,7 +136,7 @@ stack status
 ```bash
 # Amend the current commit and restack children
 git add <modified-files>
-stack modify
+git-stack modify
 
 # The modify command automatically rebases all child branches
 ```
@@ -145,30 +145,30 @@ stack modify
 
 ```bash
 # Pull latest main and restack all branches
-stack sync
+git-stack sync
 
 # Force reset main to origin/main (with safety checks)
-stack sync --force
+git-stack sync --force
 ```
 
 ### Restacking
 
 ```bash
 # Restack current branch and its children
-stack restack
+git-stack restack
 
 # Restack a specific branch
-stack restack <branch-name>
+git-stack restack <branch-name>
 ```
 
 ### Submitting Pull Requests
 
 ```bash
 # Push branches and create/update PRs for the entire stack
-stack submit
+git-stack submit
 
 # Submit a specific branch and its ancestors
-stack submit <branch-name>
+git-stack submit <branch-name>
 
 # Requires GitHub CLI (gh) to be installed and authenticated
 # Install: https://cli.github.com/
@@ -186,22 +186,22 @@ git checkout main
 
 # Layer 1: Database models
 git add models/user_profile.py
-stack create profile-models -m "Add user profile database models"
+git-stack create profile-models -m "Add user profile database models"
 
 # Layer 2: API endpoints (builds on models)
 git add api/profile_endpoints.py
-stack create profile-api -m "Add profile API endpoints"
+git-stack create profile-api -m "Add profile API endpoints"
 
 # Layer 3: Frontend components (builds on API)
 git add components/ProfilePage.tsx
-stack create profile-ui -m "Add profile UI components"
+git-stack create profile-ui -m "Add profile UI components"
 
 # Layer 4: Tests (builds on everything)
 git add tests/test_profile.py
-stack create profile-tests -m "Add comprehensive profile tests"
+git-stack create profile-tests -m "Add comprehensive profile tests"
 
 # View your stack
-stack tree
+git-stack tree
 ```
 
 Output:
@@ -218,7 +218,7 @@ Output:
 **Creating Pull Requests:**
 ```bash
 # Automated approach (requires GitHub CLI)
-stack submit
+git-stack submit
 
 # Output:
 # 📤 Submitting stack (4 branch(es)):
@@ -253,13 +253,13 @@ Your reviewer asks for changes in the middle of your stack.
 
 ```bash
 # You're on profile-tests, reviewer comments on profile-api
-stack checkout profile-api
+git-stack checkout profile-api
 
 # Make the requested changes
 git add api/profile_endpoints.py
 
 # Amend the commit and automatically restack all children
-stack modify
+git-stack modify
 
 # All child branches (profile-ui, profile-tests) are automatically rebased!
 ```
@@ -275,7 +275,7 @@ Someone merged a PR to main while you're working on your stack.
 
 ```bash
 # Sync your stack with the latest main
-stack sync
+git-stack sync
 
 # This will:
 # 1. Pull latest main from origin
@@ -289,17 +289,17 @@ stack sync
 
 ```bash
 # Sync encounters a conflict
-stack sync
+git-stack sync
 
 # Output:
 # ⚠️  Conflict detected while restacking profile-api
-# Please resolve conflicts, then run: stack continue
+# Please resolve conflicts, then run: git-stack continue
 
 # Resolve conflicts manually
 git add <resolved-files>
 
 # Continue the restack process
-stack continue
+git-stack continue
 
 # Stack automatically restacks remaining children
 ```
@@ -310,19 +310,19 @@ stack continue
 # Stack 1: Authentication feature
 git checkout main
 git add auth.py
-stack create auth-base -m "Add auth base"
+git-stack create auth-base -m "Add auth base"
 git add login.py
-stack create auth-login -m "Add login"
+git-stack create auth-login -m "Add login"
 
 # Stack 2: Separate feature - User settings
 git checkout main
 git add settings.py
-stack create settings-base -m "Add settings base"
+git-stack create settings-base -m "Add settings base"
 git add preferences.py
-stack create settings-prefs -m "Add preferences"
+git-stack create settings-prefs -m "Add preferences"
 
 # View both stacks
-stack tree
+git-stack tree
 ```
 
 Output:
@@ -340,20 +340,20 @@ Output:
 
 ```bash
 # You're deep in a stack and want to go back to the beginning
-stack bottom  # Jump to first branch in stack
+git-stack bottom  # Jump to first branch in stack
 
 # Navigate up the tree
-stack up      # Go to parent branch
+git-stack up      # Go to parent branch
 
 # Check where you are
-stack status
+git-stack status
 
 # Current branch: auth-login
 # Parent: auth-base
 # Children: auth-tests, auth-docs
 
 # If multiple children exist, stack prompts you to choose
-stack down
+git-stack down
 
 # Multiple children available:
 #   1. auth-tests
@@ -370,7 +370,7 @@ Useful when you want to create a branch structure first, then commit later.
 git add feature.py
 
 # Create branch without committing
-stack create my-feature --no-commit
+git-stack create my-feature --no-commit
 
 # Changes remain staged
 git status
@@ -386,7 +386,7 @@ git commit -m "Add feature"
 
 ```bash
 # Stack maintains automatic backups
-stack status
+git-stack status
 
 # Output:
 # Current branch: feature-branch
@@ -394,10 +394,10 @@ stack status
 # Children: none
 #
 # 💾 Backup available (created 5 minutes ago)
-#    Restore with: stack restore-backup
+#    Restore with: git-stack restore-backup
 
 # If something goes wrong
-stack restore-backup
+git-stack restore-backup
 
 # Type 'yes' to restore from backup, or anything else to cancel: yes
 # ✓ Metadata restored from backup
@@ -423,11 +423,11 @@ git cherry-pick <commit-hash-1> <commit-hash-2>
 # Now track it with stack (from main)
 git checkout main
 git add .  # Add any uncommitted changes
-stack create feature-part1 -m "Part 1: Core functionality"
+git-stack create feature-part1 -m "Part 1: Core functionality"
 
 # Continue with next part
 git cherry-pick <commit-hash-3> <commit-hash-4>
-stack create feature-part2 -m "Part 2: UI components"
+git-stack create feature-part2 -m "Part 2: UI components"
 
 # And so on...
 ```
@@ -436,10 +436,10 @@ stack create feature-part2 -m "Part 2: UI components"
 
 ```bash
 # Check all your stacks
-stack tree
+git-stack tree
 
 # Regularly sync to stay updated
-stack sync
+git-stack sync
 
 # Push all branches for PR review
 git push --all origin
@@ -450,8 +450,8 @@ git push --all origin
 ### 1. Keep Branches Focused
 Each branch should represent one logical change:
 ```bash
-✅ Good: stack create add-user-validation -m "Add email validation"
-❌ Bad:  stack create misc-changes -m "Fix stuff"
+✅ Good: git-stack create add-user-validation -m "Add email validation"
+❌ Bad:  git-stack create misc-changes -m "Fix stuff"
 ```
 
 ### 2. Use Descriptive Branch Names
@@ -470,37 +470,37 @@ git commit -m "Add error handling"
 git commit -m "Add tests"
 
 # Stack when you have a complete, reviewable unit
-stack create auth-middleware -m "Add authentication middleware"
+git-stack create auth-middleware -m "Add authentication middleware"
 ```
 
 ### 4. Sync Regularly
 ```bash
 # Sync at least once a day
-stack sync
+git-stack sync
 
 # Before starting new work
 git checkout main
 git pull
-stack sync
+git-stack sync
 ```
 
 ### 5. Handle Conflicts Promptly
 ```bash
 # When conflicts occur during sync
-stack sync
+git-stack sync
 # ⚠️  Conflict detected...
 
 # Don't ignore it - resolve immediately
 vim conflicted-file.py
 git add conflicted-file.py
-stack continue
+git-stack continue
 ```
 
 ### 6. Use --no-commit for Experimentation
 ```bash
 # Try out changes without committing
 git add experimental-feature.py
-stack create experiment --no-commit
+git-stack create experiment --no-commit
 
 # Decide later whether to commit or discard
 git commit -m "Keep this change"
@@ -519,7 +519,7 @@ git reset HEAD experimental-feature.py
 - ✅ Works offline
 - ✅ Local metadata only
 - ✅ Optional GitHub integration (via GitHub CLI)
-- ✅ Automated PR creation/updating with `stack submit`
+- ✅ Automated PR creation/updating with `git-stack submit`
 - ❌ No web UI
 
 **Graphite:**
@@ -552,7 +552,7 @@ git checkout -b manual-branch
 # You'll need to recreate it using stack to track it
 git checkout main
 git cherry-pick <commits-from-manual-branch>
-stack create manual-branch -m "Track existing branch"
+git-stack create manual-branch -m "Track existing branch"
 ```
 
 ### "Cycle detected in branch hierarchy"
@@ -561,7 +561,7 @@ stack create manual-branch -m "Track existing branch"
 # Check .git/stack-metadata.json
 
 # Restore from backup
-stack restore-backup
+git-stack restore-backup
 ```
 
 ### "Rebase in progress" after a failed operation
@@ -571,7 +571,7 @@ git status
 
 # If in a rebase
 git add <resolved-files>
-stack continue
+git-stack continue
 
 # Or abort if needed
 git rebase --abort
@@ -580,7 +580,7 @@ git rebase --abort
 ### Branches out of sync with metadata
 ```bash
 # Stack auto-cleans deleted branches
-stack tree
+git-stack tree
 # 🧹 Cleaned up 2 deleted branch(es): old-branch-1, old-branch-2
 ```
 
@@ -588,51 +588,54 @@ stack tree
 
 | Command | Description |
 |---------|-------------|
-| `stack create <name> -m "msg"` | Create a new branch on top of current |
-| `stack create <name> --no-commit` | Create branch without committing |
-| `stack checkout [name]` | Checkout a branch (interactive if no name) |
-| `stack tree` | Display the branch tree |
-| `stack status` | Show current branch status |
-| `stack up` | Move to parent branch |
-| `stack down` | Move to child branch |
-| `stack top` | Jump to top of current stack |
-| `stack bottom` | Jump to bottom of current stack |
-| `stack modify` | Amend current commit and restack children |
-| `stack sync` | Pull main and restack all branches |
-| `stack sync --force` | Force reset main to origin/main |
-| `stack restack [name]` | Restack branch and its children |
-| `stack continue` | Continue after resolving conflicts |
-| `stack restore-backup` | Restore metadata from backup |
-| `stack submit [branch]` | Push branches and create/update PRs for the stack |
+| `git-stack create <name> -m "msg"` | Create a new branch on top of current |
+| `git-stack create <name> --no-commit` | Create branch without committing |
+| `git-stack checkout [name]` | Checkout a branch (interactive if no name) |
+| `git-stack tree` | Display the branch tree |
+| `git-stack status` | Show current branch status |
+| `git-stack up` | Move to parent branch |
+| `git-stack down` | Move to child branch |
+| `git-stack top` | Jump to top of current stack |
+| `git-stack bottom` | Jump to bottom of current stack |
+| `git-stack modify` | Amend current commit and restack children |
+| `git-stack sync` | Pull main and restack all branches |
+| `git-stack sync --force` | Force reset main to origin/main |
+| `git-stack restack [name]` | Restack branch and its children |
+| `git-stack continue` | Continue after resolving conflicts |
+| `git-stack restore-backup` | Restore metadata from backup |
+| `git-stack submit [branch]` | Push branches and create/update PRs for the stack |
 
 ## Tips & Tricks
 
 ### Create a shorter command alias
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
-alias st='stack'
+alias sk='git-stack'
 
 # Now you can use:
-st tree
-st create my-branch -m "message"
-st co  # Interactive checkout
-st sync
+sk tree
+sk create my-branch -m "message"
+sk co  # Interactive checkout
+sk sync
+
+# Or use git's subcommand style:
+git stack tree
 ```
 
 ### Create aliases for common operations
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
-alias stree='stack tree'
-alias sstatus='stack status'
-alias sup='stack up'
-alias sdown='stack down'
-alias ssync='stack sync'
+alias stree='git-stack tree'
+alias sstatus='git-stack status'
+alias sup='git-stack up'
+alias sdown='git-stack down'
+alias ssync='git-stack sync'
 ```
 
 ### Use with GitHub CLI for PR management
 ```bash
-# Automated approach - use stack submit
-stack submit
+# Automated approach - use git-stack submit
+git-stack submit
 
 # Or create PRs manually for specific branches
 gh pr create --base parent-branch --head feature-branch --fill
@@ -641,7 +644,7 @@ gh pr create --base parent-branch --head feature-branch --fill
 ### Visualize your stack before pushing
 ```bash
 # Always check before pushing
-stack tree
+git-stack tree
 
 # Push all branches
 git push --all origin
@@ -652,7 +655,7 @@ git push --all origin
 # Never work directly on main
 git checkout main
 # Always create a branch first
-stack create <feature-name> -m "Start feature"
+git-stack create <feature-name> -m "Start feature"
 ```
 
 ## Contributing

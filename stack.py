@@ -1338,8 +1338,8 @@ class StackManager:
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        prog='stack',
-        description='Stack - Stacked Branches CLI for Git'
+        prog='git-stack',
+        description='git-stack - Stacked Branches CLI for Git'
     )
 
     # Add subparsers for commands
