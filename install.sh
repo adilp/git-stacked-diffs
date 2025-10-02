@@ -1,9 +1,9 @@
 #!/bin/bash
-# Installation script for stack CLI
+# Installation script for git-stack CLI
 
 set -e
 
-echo "Installing Stack CLI..."
+echo "Installing git-stack CLI..."
 
 # Check if Python 3 is installed
 if ! command -v python3 &> /dev/null; then
@@ -17,8 +17,8 @@ mkdir -p "${INSTALL_DIR}"
 
 # Copy the script
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/stack.py"
-cp "${SCRIPT_PATH}" "${INSTALL_DIR}/stack"
-chmod +x "${INSTALL_DIR}/stack"
+cp "${SCRIPT_PATH}" "${INSTALL_DIR}/git-stack"
+chmod +x "${INSTALL_DIR}/git-stack"
 
 # Check if directory is in PATH
 if [[ ":$PATH:" != *":${INSTALL_DIR}:"* ]]; then
@@ -30,6 +30,7 @@ if [[ ":$PATH:" != *":${INSTALL_DIR}:"* ]]; then
     echo ""
 fi
 
-echo "✓ Stack CLI installed to ${INSTALL_DIR}/stack"
+echo "✓ git-stack CLI installed to ${INSTALL_DIR}/git-stack"
 echo ""
-echo "Run 'stack' to get started!"
+echo "Run 'git-stack' or 'git stack' to get started!"
+echo "Tip: Create an alias: alias sk='git-stack'"
