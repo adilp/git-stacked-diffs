@@ -383,6 +383,20 @@ class StackManager:
         self._backup_metadata()
 
         try:
+            # Check for uncommitted changes before checkout
+            status_result = self._run_git("status", "--porcelain", check=False)
+            if status_result.stdout.strip():
+                print("⚠️  You have uncommitted changes:")
+                for line in status_result.stdout.strip().split('\n')[:5]:
+                    print(f"  {line}")
+                if len(status_result.stdout.strip().split('\n')) > 5:
+                    print("  ...")
+                print("\nCommit or stash your changes before syncing:")
+                print("  1. Commit: git add . && git commit -m 'message'")
+                print("  2. Stash: git stash")
+                print("  3. Create branch: stack create <branch-name> -m 'message'")
+                sys.exit(1)
+
             self._run_git("checkout", main_branch)
 
             # Check if remote exists
@@ -446,7 +460,15 @@ class StackManager:
 
                         self._run_git("reset", "--hard", f"origin/{main_branch}")
                     else:
-                        self._run_git("pull", "--rebase")
+                        result = self._run_git("pull", "--rebase", check=False)
+                        if result.returncode != 0:
+                            print(f"⚠️  Failed to pull {main_branch}")
+                            print(result.stderr)
+                            print("\nYou may have uncommitted changes. Either:")
+                            print("  1. Commit your changes: git add . && git commit -m 'message'")
+                            print("  2. Stash your changes: git stash")
+                            print("  3. Use force sync: stack sync --force")
+                            sys.exit(1)
 
                     print(f"✓ {main_branch} is up to date")
 
@@ -459,11 +481,24 @@ class StackManager:
             merged_result = self._run_git("branch", "--merged", main_branch, check=False)
             if merged_result.returncode == 0:
                 merged_branches = []
+                current_branch_merged = False
                 for line in merged_result.stdout.strip().split('\n'):
                     branch = line.strip().strip('* ').strip()
-                    # Skip main branch and current branch
-                    if branch and branch != main_branch and branch != current_branch:
-                        merged_branches.append(branch)
+                    # Skip main branch
+                    if branch and branch != main_branch:
+                        if branch == current_branch:
+                            current_branch_merged = True
+                        else:
+                            merged_branches.append(branch)
+
+                if merged_branches or current_branch_merged:
+                    # If current branch is merged, checkout main first
+                    if current_branch_merged:
+                        print(f"\n⚠️  Current branch '{current_branch}' has been merged.")
+                        print(f"Switching to {main_branch}...")
+                        self._run_git("checkout", main_branch)
+                        # Now add it to the list
+                        merged_branches.insert(0, current_branch)
 
                 if merged_branches:
                     print(f"\n🧹 Found {len(merged_branches)} merged branch(es):")
@@ -478,7 +513,19 @@ class StackManager:
                                 print(f"  ✓ Deleted {branch}")
                                 deleted_any = True
                             else:
-                                print(f"  ⚠️  Failed to delete {branch}")
+                                # Try force delete
+                                print(f"  ⚠️  Failed to delete {branch} (may have unmerged commits)")
+                                print(f"      Force delete? (y/n): ", end='')
+                                force_confirm = input().strip().lower()
+                                if force_confirm == 'y' or force_confirm == 'yes':
+                                    force_result = self._run_git("branch", "-D", branch, check=False)
+                                    if force_result.returncode == 0:
+                                        print(f"      ✓ Force deleted {branch}")
+                                        deleted_any = True
+                                    else:
+                                        print(f"      ⚠️  Failed to force delete {branch}")
+                                else:
+                                    print(f"      Skipped {branch}")
                         else:
                             print(f"  Skipped {branch}")
 
@@ -1141,10 +1188,16 @@ class StackManager:
             print(f"  Pushing {branch_name} to origin...")
             push_result = self._run_git("push", "-u", "origin", branch_name, check=False)
 
+            # If push fails due to non-fast-forward, try force push with lease
             if push_result.returncode != 0:
-                print(f"⚠️  Failed to push {branch_name}")
-                print(push_result.stderr)
-                sys.exit(1)
+                if "rejected" in push_result.stderr and "non-fast-forward" in push_result.stderr:
+                    print(f"  Branch history changed, force pushing with --force-with-lease...")
+                    push_result = self._run_git("push", "--force-with-lease", "-u", "origin", branch_name, check=False)
+
+                if push_result.returncode != 0:
+                    print(f"⚠️  Failed to push {branch_name}")
+                    print(push_result.stderr)
+                    sys.exit(1)
 
             # Check if PR already exists
             pr_check = subprocess.run(
