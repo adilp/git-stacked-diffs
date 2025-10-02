@@ -598,9 +598,12 @@ class StackManager:
             # Clear backup after successful operation
             self._clear_metadata_backup()
 
-            # Return to original branch if it still exists
+            # Return to original branch if it still exists, otherwise go to main
             if current_branch != main_branch and self._branch_exists(current_branch):
                 self._run_git("checkout", current_branch)
+            elif not self._branch_exists(current_branch):
+                # Original branch was deleted, return to main
+                self._run_git("checkout", main_branch)
 
             print("\n✓ Sync complete")
 
