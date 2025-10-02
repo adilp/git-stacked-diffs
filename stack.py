@@ -9,6 +9,8 @@ import json
 import os
 import subprocess
 import sys
+import termios
+import tty
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -316,6 +318,70 @@ class StackManager:
                 print("Metadata restored from backup")
             raise
     
+    def _get_key(self):
+        """Read a single keypress from stdin"""
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            ch = sys.stdin.read(1)
+            # Handle arrow keys (escape sequences)
+            if ch == '\x1b':
+                ch2 = sys.stdin.read(1)
+                if ch2 == '[':
+                    ch3 = sys.stdin.read(1)
+                    if ch3 == 'A':
+                        return 'up'
+                    elif ch3 == 'B':
+                        return 'down'
+            return ch
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    def _interactive_select(self, options: List[str], title: str, current_branch: Optional[str] = None) -> Optional[str]:
+        """Interactive selection with arrow keys"""
+        if not options:
+            return None
+
+        selected_idx = 0
+        # Start at current branch if specified
+        if current_branch and current_branch in options:
+            selected_idx = options.index(current_branch)
+
+        # Print title once
+        print(f"? {title} (arrow keys to move, enter to select, q to quit)\n")
+
+        first_draw = True
+        while True:
+            if not first_draw:
+                # Move cursor up to redraw menu
+                print(f'\033[{len(options)}A', end='')
+            first_draw = False
+
+            # Draw options
+            for i, option in enumerate(options):
+                # Clear line
+                print('\033[K', end='')
+                if i == selected_idx:
+                    marker = "❯"
+                    print(f"\033[36m{marker}   {option}\033[0m")  # Cyan for selected
+                else:
+                    marker = " "
+                    print(f"{marker}   {option}")
+
+            key = self._get_key()
+
+            if key == 'up' and selected_idx > 0:
+                selected_idx -= 1
+            elif key == 'down' and selected_idx < len(options) - 1:
+                selected_idx += 1
+            elif key == '\r' or key == '\n':  # Enter
+                print()  # Add newline after selection
+                return options[selected_idx]
+            elif key == 'q' or key == '\x03':  # q or Ctrl-C
+                print()  # Add newline
+                return None
+
     def checkout(self, branch_name: Optional[str] = None):
         """Checkout a branch (interactive if no name provided)"""
         if branch_name:
@@ -327,8 +393,7 @@ class StackManager:
             self._run_git("checkout", branch_name)
             print(f"✓ Checked out '{branch_name}'")
         else:
-            # Interactive branch selection
-            # First, clean up any deleted branches to ensure accurate list
+            # Interactive branch selection with arrow keys
             cleaned = self._cleanup_deleted_branches()
             if cleaned:
                 print(f"🧹 Cleaned up {len(cleaned)} deleted branch(es): {', '.join(cleaned)}\n")
@@ -344,35 +409,28 @@ class StackManager:
                 print("No existing branches found in Git")
                 return
 
-            while True:
-                print("\nAvailable branches:")
-                for i, branch in enumerate(existing_branches, 1):
-                    parent = self.metadata["stacks"][branch]["parent"]
-                    current_marker = " (current)" if branch == self._get_current_branch() else ""
-                    print(f"  {i}. {branch} (parent: {parent}){current_marker}")
+            current_branch = self._get_current_branch()
+            selected_branch = self._interactive_select(existing_branches, "Checkout a branch", current_branch)
 
-                choice = input("\nSelect branch number (or 'q' to quit): ").strip()
-
-                if choice.lower() == 'q':
-                    print("Cancelled")
+            if selected_branch:
+                if not self._branch_exists(selected_branch):
+                    print(f"⚠️  Branch '{selected_branch}' no longer exists")
                     return
 
-                try:
-                    idx = int(choice) - 1
-                    if 0 <= idx < len(existing_branches):
-                        selected_branch = existing_branches[idx]
-                        # Double-check branch still exists before checkout
-                        if not self._branch_exists(selected_branch):
-                            print(f"⚠️  Branch '{selected_branch}' no longer exists")
-                            print("Refreshing branch list...")
-                            break  # Break to refresh the list
-                        self._run_git("checkout", selected_branch)
-                        print(f"✓ Checked out '{selected_branch}'")
-                        return
-                    else:
-                        print(f"⚠️  Invalid selection. Please enter a number between 1 and {len(existing_branches)}")
-                except ValueError:
-                    print("⚠️  Invalid input. Please enter a number or 'q' to quit")
+                # Try to checkout, handle errors gracefully
+                result = self._run_git("checkout", selected_branch, check=False)
+                if result.returncode == 0:
+                    print(f"✓ Checked out '{selected_branch}'")
+                else:
+                    print(f"⚠️  Failed to checkout '{selected_branch}'")
+                    print(result.stderr)
+                    if "would be overwritten" in result.stderr or "uncommitted changes" in result.stderr:
+                        print("\nYou have uncommitted changes. Either:")
+                        print("  1. Commit them: git add . && git commit -m 'message'")
+                        print("  2. Stash them: git stash")
+                        print("  3. Create a branch: stack create <branch-name> -m 'message'")
+            else:
+                print("Cancelled")
     
     def sync(self, force: bool = False):
         """Sync with remote and restack all branches"""
