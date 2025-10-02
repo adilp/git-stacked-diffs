@@ -90,13 +90,16 @@ Output:
 ### Creating Branches
 
 ```bash
-# Create a new branch with a commit
+# Create a new branch with a commit (requires staged files)
 git add <files>
 stack create <branch-name> -m "Commit message"
 
 # Create a branch without committing (keeps changes staged)
 git add <files>
 stack create <branch-name> --no-commit
+
+# Note: You must stage files before creating a branch
+# stack create will fail if no files are staged
 ```
 
 ### Navigation
@@ -158,6 +161,19 @@ stack restack
 stack restack <branch-name>
 ```
 
+### Submitting Pull Requests
+
+```bash
+# Push branches and create/update PRs for the entire stack
+stack submit
+
+# Submit a specific branch and its ancestors
+stack submit <branch-name>
+
+# Requires GitHub CLI (gh) to be installed and authenticated
+# Install: https://cli.github.com/
+```
+
 ## Real-World Scenarios
 
 ### Scenario 1: Building a New Feature in Layers
@@ -201,7 +217,24 @@ Output:
 
 **Creating Pull Requests:**
 ```bash
-# Push all branches
+# Automated approach (requires GitHub CLI)
+stack submit
+
+# Output:
+# 📤 Submitting stack (4 branch(es)):
+#   profile-models → main
+#   profile-api → profile-models
+#   profile-ui → profile-api
+#   profile-tests → profile-ui
+#
+# [1/4] Processing profile-models...
+#   Pushing profile-models to origin...
+#   Creating PR: profile-models → main
+#   ✓ Created PR
+#   🔗 https://github.com/user/repo/pull/123
+# ...
+
+# Manual approach
 git push -u origin profile-models
 git push -u origin profile-api
 git push -u origin profile-ui
@@ -485,13 +518,15 @@ git reset HEAD experimental-feature.py
 - ✅ No cloud service required
 - ✅ Works offline
 - ✅ Local metadata only
-- ❌ No GitHub integration
+- ✅ Optional GitHub integration (via GitHub CLI)
+- ✅ Automated PR creation/updating with `stack submit`
 - ❌ No web UI
 
 **Graphite:**
 - ✅ GitHub PR management
 - ✅ Web dashboard
 - ✅ Team collaboration features
+- ✅ Advanced PR workflows
 - ❌ Requires cloud service
 - ❌ More complex setup
 - ❌ Paid tiers for teams
@@ -499,13 +534,13 @@ git reset HEAD experimental-feature.py
 **When to use Stack:**
 - You want a simple, local-first tool
 - You're comfortable with Git and GitHub CLI
-- You don't need automated PR management
 - You value simplicity and control
+- You want optional PR automation without cloud dependencies
 
 **When to use Graphite:**
-- You want automated PR creation/updating
-- You need team collaboration features
+- You need advanced team collaboration features
 - You want a web UI for visualization
+- You need enterprise features
 
 ## Troubleshooting
 
@@ -568,6 +603,7 @@ stack tree
 | `stack restack [name]` | Restack branch and its children |
 | `stack continue` | Continue after resolving conflicts |
 | `stack restore-backup` | Restore metadata from backup |
+| `stack submit [branch]` | Push branches and create/update PRs for the stack |
 
 ## Tips & Tricks
 
@@ -583,10 +619,11 @@ alias ssync='stack sync'
 
 ### Use with GitHub CLI for PR management
 ```bash
-# Create PRs for all branches
-for branch in $(git branch | grep -v main); do
-  gh pr create --base main --head "$branch" --fill
-done
+# Automated approach - use stack submit
+stack submit
+
+# Or create PRs manually for specific branches
+gh pr create --base parent-branch --head feature-branch --fill
 ```
 
 ### Visualize your stack before pushing

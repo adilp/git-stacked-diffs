@@ -990,6 +990,157 @@ class StackManager:
         else:
             print("⚠️  Failed to restore from backup")
 
+    def submit(self, branch: Optional[str] = None):
+        """Push branches and create/update PRs for the stack"""
+        # Clean up deleted branches first
+        cleaned = self._cleanup_deleted_branches()
+        if cleaned:
+            print(f"🧹 Cleaned up {len(cleaned)} deleted branch(es): {', '.join(cleaned)}\n")
+
+        # Check if gh CLI is installed
+        gh_check = self._run_git("--version", check=False)
+        result = subprocess.run(["gh", "--version"], capture_output=True, check=False)
+        if result.returncode != 0:
+            print("⚠️  GitHub CLI (gh) is not installed")
+            print("Install it from: https://cli.github.com/")
+            print("\nAlternatively, create PRs manually:")
+            print("  1. Push branches: git push -u origin <branch>")
+            print("  2. Create PR with correct base for each branch")
+            sys.exit(1)
+
+        # Check if remote exists
+        if not self._has_remote("origin"):
+            print("⚠️  No remote 'origin' configured")
+            print("Add a remote first: git remote add origin <url>")
+            sys.exit(1)
+
+        # Determine which branch to start from
+        if branch is None:
+            branch = self._get_current_branch()
+
+        if branch not in self.metadata["stacks"]:
+            print(f"⚠️  Branch '{branch}' is not tracked in the stack")
+            sys.exit(1)
+
+        main_branch = self.metadata["main_branch"]
+
+        # Find all branches from main to current branch
+        branches_to_submit = []
+        current = branch
+
+        # Walk up to main, building the list
+        visited = set()
+        while current and current != main_branch:
+            if current in visited:
+                print(f"⚠️  Cycle detected in branch hierarchy at '{current}'")
+                sys.exit(1)
+            visited.add(current)
+
+            if current not in self.metadata["stacks"]:
+                break
+
+            branches_to_submit.insert(0, current)  # Insert at beginning to get bottom-up order
+            current = self.metadata["stacks"][current]["parent"]
+
+        if not branches_to_submit:
+            print(f"⚠️  No branches to submit (already on {main_branch})")
+            return
+
+        print(f"📤 Submitting stack ({len(branches_to_submit)} branch(es)):\n")
+        for b in branches_to_submit:
+            parent = self.metadata["stacks"][b]["parent"]
+            print(f"  {b} → {parent}")
+        print()
+
+        # Push and create/update PRs for each branch
+        for i, branch_name in enumerate(branches_to_submit):
+            parent_branch = self.metadata["stacks"][branch_name]["parent"]
+
+            print(f"[{i+1}/{len(branches_to_submit)}] Processing {branch_name}...")
+
+            # Push the branch
+            print(f"  Pushing {branch_name} to origin...")
+            push_result = self._run_git("push", "-u", "origin", branch_name, check=False)
+
+            if push_result.returncode != 0:
+                print(f"⚠️  Failed to push {branch_name}")
+                print(push_result.stderr)
+                sys.exit(1)
+
+            # Check if PR already exists
+            pr_check = subprocess.run(
+                ["gh", "pr", "list", "--head", branch_name, "--json", "number,baseRefName"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+
+            if pr_check.returncode == 0 and pr_check.stdout.strip() != "[]":
+                # PR exists, update base if needed
+                import json
+                pr_data = json.loads(pr_check.stdout)
+                if pr_data:
+                    pr_number = pr_data[0]["number"]
+                    current_base = pr_data[0]["baseRefName"]
+
+                    if current_base != parent_branch:
+                        print(f"  Updating PR #{pr_number} base: {current_base} → {parent_branch}")
+                        subprocess.run(
+                            ["gh", "pr", "edit", str(pr_number), "--base", parent_branch],
+                            check=True
+                        )
+                    else:
+                        print(f"  PR #{pr_number} already exists (base: {parent_branch})")
+
+                    # View the PR URL
+                    pr_url_result = subprocess.run(
+                        ["gh", "pr", "view", str(pr_number), "--json", "url", "-q", ".url"],
+                        capture_output=True,
+                        text=True,
+                        check=False
+                    )
+                    if pr_url_result.returncode == 0:
+                        print(f"  🔗 {pr_url_result.stdout.strip()}")
+            else:
+                # Create new PR
+                print(f"  Creating PR: {branch_name} → {parent_branch}")
+
+                # Get commit messages for PR body
+                commit_log = self._run_git(
+                    "log", "--format=%s", f"{parent_branch}..{branch_name}",
+                    check=False
+                )
+
+                pr_body = f"Stack: {' → '.join(branches_to_submit[:i+1])}\n\n"
+                if commit_log.stdout.strip():
+                    pr_body += "## Changes\n"
+                    for line in commit_log.stdout.strip().split('\n'):
+                        pr_body += f"- {line}\n"
+
+                pr_result = subprocess.run(
+                    ["gh", "pr", "create",
+                     "--base", parent_branch,
+                     "--head", branch_name,
+                     "--title", f"[Stack] {branch_name}",
+                     "--body", pr_body],
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+
+                if pr_result.returncode == 0:
+                    print(f"  ✓ Created PR")
+                    # Extract URL from output
+                    pr_url = pr_result.stdout.strip()
+                    print(f"  🔗 {pr_url}")
+                else:
+                    print(f"⚠️  Failed to create PR for {branch_name}")
+                    print(pr_result.stderr)
+
+            print()
+
+        print(f"✓ Stack submitted successfully!")
+
 
 def main():
     """Main CLI entry point"""
@@ -1037,6 +1188,10 @@ def main():
 
     # restore-backup command
     subparsers.add_parser('restore-backup', help='Restore metadata from backup file')
+
+    # submit command
+    submit_parser = subparsers.add_parser('submit', help='Push branches and create/update PRs for the stack')
+    submit_parser.add_argument('branch', nargs='?', help='Branch to submit (default: current)')
 
     # Navigation commands
     subparsers.add_parser('top', help='Go to top of stack')
@@ -1096,6 +1251,9 @@ def main():
 
         elif args.command == "restore-backup":
             manager.restore_backup()
+
+        elif args.command == "submit":
+            manager.submit(args.branch)
 
     except subprocess.CalledProcessError as e:
         print(f"Git error: {e}")
