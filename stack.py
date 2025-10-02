@@ -1062,10 +1062,16 @@ class StackManager:
             print(f"  Pushing {branch_name} to origin...")
             push_result = self._run_git("push", "-u", "origin", branch_name, check=False)
 
+            # If push fails due to non-fast-forward, try force push with lease
             if push_result.returncode != 0:
-                print(f"⚠️  Failed to push {branch_name}")
-                print(push_result.stderr)
-                sys.exit(1)
+                if "rejected" in push_result.stderr and "non-fast-forward" in push_result.stderr:
+                    print(f"  Branch history changed, force pushing with --force-with-lease...")
+                    push_result = self._run_git("push", "--force-with-lease", "-u", "origin", branch_name, check=False)
+
+                if push_result.returncode != 0:
+                    print(f"⚠️  Failed to push {branch_name}")
+                    print(push_result.stderr)
+                    sys.exit(1)
 
             # Check if PR already exists
             pr_check = subprocess.run(
@@ -1121,7 +1127,7 @@ class StackManager:
                     ["gh", "pr", "create",
                      "--base", parent_branch,
                      "--head", branch_name,
-                     "--title", f"[Stack] {branch_name}",
+                     "--title", branch_name,
                      "--body", pr_body],
                     capture_output=True,
                     text=True,
@@ -1140,7 +1146,6 @@ class StackManager:
             print()
 
         print(f"✓ Stack submitted successfully!")
-
 
 def main():
     """Main CLI entry point"""
