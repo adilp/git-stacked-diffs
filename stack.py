@@ -1314,7 +1314,7 @@ class StackManager:
                     ["gh", "pr", "create",
                      "--base", parent_branch,
                      "--head", branch_name,
-                     "--title", f"[Stack] {branch_name}",
+                     "--title", branch_name,
                      "--body", pr_body],
                     capture_output=True,
                     text=True,
@@ -1333,7 +1333,6 @@ class StackManager:
             print()
 
         print(f"✓ Stack submitted successfully!")
-
 
 def main():
     """Main CLI entry point"""
