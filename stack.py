@@ -1363,6 +1363,10 @@ def main():
     sync_parser = subparsers.add_parser('sync', help='Pull main and restack all branches')
     sync_parser.add_argument('--force', action='store_true', help='Force reset to origin/main')
 
+    # ss (alias for sync)
+    ss_parser = subparsers.add_parser('ss', help='Alias for sync')
+    ss_parser.add_argument('--force', action='store_true', help='Force reset to origin/main')
+
     # restack command
     restack_parser = subparsers.add_parser('restack', help='Restack current/specified branch and children')
     restack_parser.add_argument('branch', nargs='?', help='Branch to restack')
@@ -1415,7 +1419,7 @@ def main():
         elif args.command in ("checkout", "co"):
             manager.checkout(args.branch)
 
-        elif args.command == "sync":
+        elif args.command in ("sync", "ss"):
             manager.sync(args.force)
 
         elif args.command == "restack":
