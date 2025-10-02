@@ -1351,6 +1351,12 @@ def main():
     create_parser.add_argument('-m', '--message', help='Commit message')
     create_parser.add_argument('--no-commit', action='store_true', help='Create branch without committing staged changes')
 
+    # cr (alias for create)
+    cr_parser = subparsers.add_parser('cr', help='Alias for create')
+    cr_parser.add_argument('branch_name', help='Name of the branch to create')
+    cr_parser.add_argument('-m', '--message', help='Commit message')
+    cr_parser.add_argument('--no-commit', action='store_true', help='Create branch without committing staged changes')
+
     # checkout command
     checkout_parser = subparsers.add_parser('checkout', help='Checkout a branch (interactive if no name)')
     checkout_parser.add_argument('branch', nargs='?', help='Branch name to checkout')
@@ -1362,6 +1368,10 @@ def main():
     # sync command
     sync_parser = subparsers.add_parser('sync', help='Pull main and restack all branches')
     sync_parser.add_argument('--force', action='store_true', help='Force reset to origin/main')
+
+    # ss (alias for sync)
+    ss_parser = subparsers.add_parser('ss', help='Alias for sync')
+    ss_parser.add_argument('--force', action='store_true', help='Force reset to origin/main')
 
     # restack command
     restack_parser = subparsers.add_parser('restack', help='Restack current/specified branch and children')
@@ -1409,13 +1419,13 @@ def main():
     try:
         manager = StackManager()
 
-        if args.command == "create":
+        if args.command in ("create", "cr"):
             manager.create(args.branch_name, args.message, args.no_commit)
 
         elif args.command in ("checkout", "co"):
             manager.checkout(args.branch)
 
-        elif args.command == "sync":
+        elif args.command in ("sync", "ss"):
             manager.sync(args.force)
 
         elif args.command == "restack":
