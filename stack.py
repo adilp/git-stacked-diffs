@@ -455,6 +455,37 @@ class StackManager:
             if cleaned:
                 print(f"\n🧹 Cleaned up {len(cleaned)} deleted branch(es): {', '.join(cleaned)}")
 
+            # Delete merged branches
+            merged_result = self._run_git("branch", "--merged", main_branch, check=False)
+            if merged_result.returncode == 0:
+                merged_branches = []
+                for line in merged_result.stdout.strip().split('\n'):
+                    branch = line.strip().strip('* ').strip()
+                    # Skip main branch and current branch
+                    if branch and branch != main_branch and branch != current_branch:
+                        merged_branches.append(branch)
+
+                if merged_branches:
+                    print(f"\n🧹 Found {len(merged_branches)} merged branch(es):")
+                    deleted_any = False
+                    for branch in merged_branches:
+                        print(f"\nDelete '{branch}'? (y/n): ", end='')
+                        confirmation = input().strip().lower()
+
+                        if confirmation == 'y' or confirmation == 'yes':
+                            result = self._run_git("branch", "-d", branch, check=False)
+                            if result.returncode == 0:
+                                print(f"  ✓ Deleted {branch}")
+                                deleted_any = True
+                            else:
+                                print(f"  ⚠️  Failed to delete {branch}")
+                        else:
+                            print(f"  Skipped {branch}")
+
+                    # Clean up metadata after deleting branches
+                    if deleted_any:
+                        self._cleanup_deleted_branches()
+
             # If force mode, check for uncommitted changes on all child branches
             if force:
                 branches_with_changes = []
@@ -990,6 +1021,54 @@ class StackManager:
         else:
             print("⚠️  Failed to restore from backup")
 
+    def clean_merged(self):
+        """Delete local branches that have been merged into main"""
+        main_branch = self.metadata["main_branch"]
+        current_branch = self._get_current_branch()
+
+        # Get list of merged branches
+        merged_result = self._run_git("branch", "--merged", main_branch, check=False)
+        if merged_result.returncode != 0:
+            print("⚠️  Failed to check merged branches")
+            return
+
+        merged_branches = []
+        for line in merged_result.stdout.strip().split('\n'):
+            branch = line.strip().strip('* ').strip()
+            # Skip main branch and current branch
+            if branch and branch != main_branch and branch != current_branch:
+                merged_branches.append(branch)
+
+        if not merged_branches:
+            print("No merged branches to clean up")
+            return
+
+        print(f"Found {len(merged_branches)} merged branch(es):\n")
+        for branch in merged_branches:
+            print(f"  • {branch}")
+
+        print(f"\nDelete these branches? Type 'yes' to confirm: ", end='')
+        confirmation = input().strip().lower()
+
+        if confirmation != 'yes':
+            print("❌ Cancelled")
+            return
+
+        # Delete each branch
+        deleted = []
+        for branch in merged_branches:
+            result = self._run_git("branch", "-d", branch, check=False)
+            if result.returncode == 0:
+                deleted.append(branch)
+                print(f"✓ Deleted {branch}")
+            else:
+                print(f"⚠️  Failed to delete {branch}")
+
+        if deleted:
+            # Clean up metadata
+            self._cleanup_deleted_branches()
+            print(f"\n✓ Cleaned up {len(deleted)} branch(es)")
+
     def submit(self, branch: Optional[str] = None):
         """Push branches and create/update PRs for the stack"""
         # Clean up deleted branches first
@@ -1193,6 +1272,9 @@ def main():
     submit_parser = subparsers.add_parser('submit', help='Push branches and create/update PRs for the stack')
     submit_parser.add_argument('branch', nargs='?', help='Branch to submit (default: current)')
 
+    # clean-merged command
+    subparsers.add_parser('clean-merged', help='Delete local branches that have been merged into main')
+
     # Navigation commands
     subparsers.add_parser('top', help='Go to top of stack')
     subparsers.add_parser('bottom', help='Go to bottom of stack')
@@ -1254,6 +1336,9 @@ def main():
 
         elif args.command == "submit":
             manager.submit(args.branch)
+
+        elif args.command == "clean-merged":
+            manager.clean_merged()
 
     except subprocess.CalledProcessError as e:
         print(f"Git error: {e}")
