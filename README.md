@@ -607,11 +607,23 @@ stack tree
 
 ## Tips & Tricks
 
+### Create a shorter command alias
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+alias st='stack'
+
+# Now you can use:
+st tree
+st create my-branch -m "message"
+st co  # Interactive checkout
+st sync
+```
+
 ### Create aliases for common operations
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
-alias st='stack tree'
-alias ss='stack status'
+alias stree='stack tree'
+alias sstatus='stack status'
 alias sup='stack up'
 alias sdown='stack down'
 alias ssync='stack sync'
