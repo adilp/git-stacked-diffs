@@ -1351,11 +1351,11 @@ def main():
     create_parser.add_argument('-m', '--message', help='Commit message')
     create_parser.add_argument('--no-commit', action='store_true', help='Create branch without committing staged changes')
 
-    # cr (alias for create)
-    cr_parser = subparsers.add_parser('cr', help='Alias for create')
-    cr_parser.add_argument('branch_name', help='Name of the branch to create')
-    cr_parser.add_argument('-m', '--message', help='Commit message')
-    cr_parser.add_argument('--no-commit', action='store_true', help='Create branch without committing staged changes')
+    # c (alias for create)
+    c_parser = subparsers.add_parser('c', help='Alias for create')
+    c_parser.add_argument('branch_name', help='Name of the branch to create')
+    c_parser.add_argument('-m', '--message', help='Commit message')
+    c_parser.add_argument('--no-commit', action='store_true', help='Create branch without committing staged changes')
 
     # checkout command
     checkout_parser = subparsers.add_parser('checkout', help='Checkout a branch (interactive if no name)')
@@ -1369,9 +1369,6 @@ def main():
     sync_parser = subparsers.add_parser('sync', help='Pull main and restack all branches')
     sync_parser.add_argument('--force', action='store_true', help='Force reset to origin/main')
 
-    # ss (alias for sync)
-    ss_parser = subparsers.add_parser('ss', help='Alias for sync')
-    ss_parser.add_argument('--force', action='store_true', help='Force reset to origin/main')
 
     # restack command
     restack_parser = subparsers.add_parser('restack', help='Restack current/specified branch and children')
@@ -1382,6 +1379,9 @@ def main():
 
     # modify command
     subparsers.add_parser('modify', help='Amend current commit and restack children')
+
+    # m (alias for modify)
+    subparsers.add_parser('m', help='Alias for modify')
 
     # tree command
     subparsers.add_parser('tree', help='Show branch tree')
@@ -1395,6 +1395,10 @@ def main():
     # submit command
     submit_parser = subparsers.add_parser('submit', help='Push branches and create/update PRs for the stack')
     submit_parser.add_argument('branch', nargs='?', help='Branch to submit (default: current)')
+
+    # ss (alias for submit)
+    ss_parser = subparsers.add_parser('ss', help='Alias for submit')
+    ss_parser.add_argument('branch', nargs='?', help='Branch to submit (default: current)')
 
     # clean-merged command
     subparsers.add_parser('clean-merged', help='Delete local branches that have been merged into main')
@@ -1419,13 +1423,13 @@ def main():
     try:
         manager = StackManager()
 
-        if args.command in ("create", "cr"):
+        if args.command in ("create", "c"):
             manager.create(args.branch_name, args.message, args.no_commit)
 
         elif args.command in ("checkout", "co"):
             manager.checkout(args.branch)
 
-        elif args.command in ("sync", "ss"):
+        elif args.command == "sync":
             manager.sync(args.force)
 
         elif args.command == "restack":
@@ -1434,7 +1438,7 @@ def main():
         elif args.command == "continue":
             manager.continue_rebase()
 
-        elif args.command == "modify":
+        elif args.command in ("modify", "m"):
             manager.modify()
 
         elif args.command == "tree":
@@ -1458,7 +1462,7 @@ def main():
         elif args.command == "restore-backup":
             manager.restore_backup()
 
-        elif args.command == "submit":
+        elif args.command in ("submit", "ss"):
             manager.submit(args.branch)
 
         elif args.command == "clean-merged":
