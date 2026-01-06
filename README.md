@@ -614,8 +614,10 @@ alias sk='git-stack'
 
 # Now you can use:
 sk tree
-sk create my-branch -m "message"
-sk co  # Interactive checkout
+sk c my-branch -m "message"  # Alias for create
+sk co                        # Alias for checkout
+sk m                         # Alias for modify
+sk ss                        # Alias for submit
 sk sync
 
 # Or use git's subcommand style:
