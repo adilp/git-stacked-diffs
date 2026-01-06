@@ -566,24 +566,19 @@ class StackManager:
                         confirmation = input().strip().lower()
 
                         if confirmation == 'y' or confirmation == 'yes':
-                            result = self._run_git("branch", "-d", branch, check=False)
+                            # Use -D since we already verified it's merged (squash/rebase merges have different SHAs)
+                            result = self._run_git("branch", "-D", branch, check=False)
                             if result.returncode == 0:
-                                print(f"  ✓ Deleted {branch}")
+                                print(f"  ✓ Deleted {branch} locally")
                                 deleted_any = True
-                            else:
-                                # Try force delete
-                                print(f"  ⚠️  Failed to delete {branch} (may have unmerged commits)")
-                                print(f"      Force delete? (y/n): ", end='')
-                                force_confirm = input().strip().lower()
-                                if force_confirm == 'y' or force_confirm == 'yes':
-                                    force_result = self._run_git("branch", "-D", branch, check=False)
-                                    if force_result.returncode == 0:
-                                        print(f"      ✓ Force deleted {branch}")
-                                        deleted_any = True
-                                    else:
-                                        print(f"      ⚠️  Failed to force delete {branch}")
+                                # Also delete from remote if it exists
+                                remote_result = self._run_git("push", "origin", "--delete", branch, check=False)
+                                if remote_result.returncode == 0:
+                                    print(f"  ✓ Deleted {branch} from remote")
                                 else:
-                                    print(f"      Skipped {branch}")
+                                    print(f"  ⚠️  Could not delete {branch} from remote (may not exist)")
+                            else:
+                                print(f"  ⚠️  Failed to delete {branch}")
                         else:
                             print(f"  Skipped {branch}")
 
@@ -1162,13 +1157,19 @@ class StackManager:
             print("❌ Cancelled")
             return
 
-        # Delete each branch
+        # Delete each branch (use -D since squash/rebase merges have different SHAs)
         deleted = []
         for branch in merged_branches:
-            result = self._run_git("branch", "-d", branch, check=False)
+            result = self._run_git("branch", "-D", branch, check=False)
             if result.returncode == 0:
                 deleted.append(branch)
-                print(f"✓ Deleted {branch}")
+                print(f"✓ Deleted {branch} locally")
+                # Also delete from remote if it exists
+                remote_result = self._run_git("push", "origin", "--delete", branch, check=False)
+                if remote_result.returncode == 0:
+                    print(f"  ✓ Deleted {branch} from remote")
+                else:
+                    print(f"  ⚠️  Could not delete {branch} from remote (may not exist)")
             else:
                 print(f"⚠️  Failed to delete {branch}")
 
