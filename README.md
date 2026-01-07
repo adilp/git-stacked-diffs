@@ -85,6 +85,25 @@ Output:
       ├─ auth-tests (current)
 ```
 
+### Navigate Your Stack
+
+Jump to any branch instantly with interactive checkout:
+
+```bash
+git-stack co
+```
+
+```
+? Checkout a branch (arrow keys to move, enter to select, q to quit)
+
+    main
+    auth-foundation
+❯   auth-ui
+    auth-tests
+```
+
+Use arrow keys to navigate, Enter to select. No more typing branch names or chaining `up`/`down` commands.
+
 ## Core Commands
 
 ### Creating Branches
@@ -105,20 +124,17 @@ git-stack create <branch-name> --no-commit
 ### Navigation
 
 ```bash
-# Move to parent branch
-git-stack up
+# Interactive branch checkout (recommended)
+git-stack co                 # Arrow keys to select any branch
 
-# Move to child branch (interactive if multiple children)
-git-stack down
+# Quick movement
+git-stack up                 # Move to parent branch
+git-stack down               # Move to child branch
+git-stack top                # Jump to top of stack
+git-stack bottom             # Jump to bottom of stack
 
-# Jump to the top of the stack
-git-stack top
-
-# Jump to the bottom of the stack (first branch above main)
-git-stack bottom
-
-# Interactive branch checkout
-git-stack checkout
+# Checkout specific branch by name
+git-stack co <branch-name>
 ```
 
 ### Viewing Your Stack
@@ -217,7 +233,7 @@ Output:
 
 **Creating Pull Requests:**
 ```bash
-# Automated approach (requires GitHub CLI)
+# Push and create PRs for the entire stack
 git-stack submit
 
 # Output:
@@ -233,19 +249,9 @@ git-stack submit
 #   ✓ Created PR
 #   🔗 https://github.com/user/repo/pull/123
 # ...
-
-# Manual approach
-git push -u origin profile-models
-git push -u origin profile-api
-git push -u origin profile-ui
-git push -u origin profile-tests
-
-# Create PRs in GitHub
-# PR 1: profile-models -> main
-# PR 2: profile-api -> profile-models
-# PR 3: profile-ui -> profile-api
-# PR 4: profile-tests -> profile-ui
 ```
+
+> **Note:** `submit` requires [GitHub CLI](https://cli.github.com/). Without it, push manually with `git push -u origin <branch>` and create PRs in GitHub UI.
 
 ### Scenario 2: Addressing Review Feedback
 
@@ -441,8 +447,8 @@ git-stack tree
 # Regularly sync to stay updated
 git-stack sync
 
-# Push all branches for PR review
-git push --all origin
+# Push and create PRs for the stack
+git-stack submit
 ```
 
 ## Best Practices
@@ -643,13 +649,13 @@ git-stack submit
 gh pr create --base parent-branch --head feature-branch --fill
 ```
 
-### Visualize your stack before pushing
+### Visualize your stack before submitting
 ```bash
-# Always check before pushing
+# Always check before submitting
 git-stack tree
 
-# Push all branches
-git push --all origin
+# Push and create PRs
+git-stack submit
 ```
 
 ### Keep a clean main branch
