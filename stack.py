@@ -441,14 +441,19 @@ class StackManager:
         self._backup_metadata()
 
         try:
-            # Check for uncommitted changes before checkout
-            status_result = self._run_git("status", "--porcelain", check=False)
-            if status_result.stdout.strip():
+            # Check for uncommitted changes before checkout (ignore untracked files)
+            unstaged = self._run_git("diff", "--quiet", check=False)
+            staged = self._run_git("diff", "--cached", "--quiet", check=False)
+            has_changes = unstaged.returncode != 0 or staged.returncode != 0
+
+            if has_changes:
                 print("⚠️  You have uncommitted changes:")
+                # Show what's actually changed
+                status_result = self._run_git("status", "--porcelain", check=False)
                 for line in status_result.stdout.strip().split('\n')[:5]:
-                    print(f"  {line}")
-                if len(status_result.stdout.strip().split('\n')) > 5:
-                    print("  ...")
+                    # Skip untracked files in the display
+                    if not line.startswith('??'):
+                        print(f"  {line}")
                 print("\nCommit or stash your changes before syncing:")
                 print("  1. Commit: git add . && git commit -m 'message'")
                 print("  2. Stash: git stash")
